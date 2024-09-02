@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quarkus Security Passkeys POC</title>
+
+    <script type="text/javascript">
+        async function createCredential(){
+            const response = await fetch("/passkeys/attestationOptions")
+            const publicKeyCredentialCreationOptionsJSON = await response.json()
+            const credentialCreationOptions = PublicKeyCredential.parseCreationOptionsFromJSON(publicKeyCredentialCreationOptionsJSON);
+            const publicKeyCredential = await navigator.credentials.create({ publicKey: credentialCreationOptions});
+            const registrationResponseJSON = publicKeyCredential.toJSON();
+            console.debug("registrationResponseJSON: %s", registrationResponseJSON);
+            await fetch("/register", {
+                method : 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    'username': document.getElementById('username').value,
+                    'registrationResponseJSON': JSON.stringify(registrationResponseJSON)
+                })
+            });
+        }
+
+        async function loginWithPasskey(){
+            const response = await fetch("/passkeys/assertionOptions")
+            const publicKeyCredentialRequestOptionsJSON = await response.json()
+            const credentialGetOptions = PublicKeyCredential.parseRequestOptionsFromJSON(publicKeyCredentialRequestOptionsJSON);
+            const publicKeyCredential = await navigator.credentials.get({ publicKey: credentialGetOptions});
+            const authenticationResponseJSON = publicKeyCredential.toJSON();
+            console.debug("authenticationResponseJSON: %s", authenticationResponseJSON);
+            await fetch("/passkeys/authenticate", {
+                method : 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(authenticationResponseJSON)
+            });
+        }
+
+        async function updateLoginStatus(){
+            const profile = await fetch("/profile")
+            document.getElementById("loginStatus").innerText = await profile.text();
+        }
+
+
+        function onRegisterButtonClick(){
+            createCredential();
+            return false;
+        }
+
+        async function onPasskeyLoginButtonClick(){
+            await loginWithPasskey();
+            await updateLoginStatus();
+            return false;
+        }
+
+    </script>
+
+    <style>
+        .container {
+            display: grid;
+            grid-template-columns: auto auto auto;
+        }
+        .item {
+            padding: 20px;
+        }
+    </style>
+
+</head>
+
+<body onload="updateLoginStatus();">
+
+<div>
+    <h1>Quarkus Security Passkeys POC</h1>
+    <div>
+        Since this POC relies on the <a href="https://developer.chrome.com/blog/passkeys-updates-chrome-129#json-serialization">JSON serialization of PublicKeyCredential introduced in Chrome 129</a>, you will need to use Chrome Beta (as of Aug. 2024).
+    </div>
+    <div class="container">
+        <div class="item">
+            <form action="#">
+                <input type="text" id="username" />
+                <input type="submit" value="register" onclick="onRegisterButtonClick();return false" />
+            </form>
+        </div>
+        <div class="item">
+            <button onclick="onPasskeyLoginButtonClick();">passkey login</button>
+        </div>
+        <div class="item">
+            Login user: <span id="loginStatus"></span>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
