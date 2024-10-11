@@ -12,5 +12,5 @@ You can run this POC in dev mode using:
 ```
 
 ## Prerequisites
-b
+
 - Chrome 129, which is in Beta status as of Aug. 2024, is required since this POC uses PublicKeyCredential JSON serialization to simplify the implementation.
