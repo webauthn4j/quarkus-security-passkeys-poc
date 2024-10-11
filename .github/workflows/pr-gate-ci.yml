@@ -1,0 +1,26 @@
+name: Pull Request Gate CI
+
+on: pull_request
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        java_version: [17, 21]
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java_version }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java_version }}
+          cache: 'maven'
+
+      - name: Build uber-jar with Maven
+        run: ./mvnw package -Dquarkus.package.jar.type=uber-jar
